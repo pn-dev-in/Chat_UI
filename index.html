@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatFlow Pro - Chat</title>
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <style>
+        .message-self {
+            background-color: #dcf8c6;
+            margin-left: auto;
+            border-radius: 10px 10px 0 10px;
+        }
+        .message-other {
+            background-color: #ffffff;
+            border-radius: 10px 10px 10px 0;
+        }
+        .chat-container {
+            height: calc(100vh - 130px);
+        }
+        .messages-container {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+    <!-- Header -->
+    <header class="bg-green-500 text-white p-4 shadow-md">
+        <div class="container mx-auto flex items-center">
+            <a href="index.html" class="mr-4">
+                <i data-feather="arrow-left"></i>
+            </a>
+            <div class="w-10 h-10 rounded-full bg-white mr-3"></div>
+            <div>
+                <h1 class="font-semibold">Family Group</h1>
+                <p class="text-xs opacity-80">Online</p>
+            </div>
+            <div class="ml-auto flex space-x-4">
+                <i data-feather="video"></i>
+                <i data-feather="phone"></i>
+                <i data-feather="more-vertical"></i>
+            </div>
+        </div>
+    </header>
+    <!-- Chat Messages -->
+    <main class="chat-container container mx-auto p-4">
+        <div class="messages-container bg-white rounded-lg shadow-inner p-4">
+            <!-- Sample Messages -->
+            <div class="message-other max-w-xs p-3 mb-3 shadow-sm">
+                <p>Hey there! How's it going?</p>
+                <span class="text-xs text-gray-500 block text-right">10:30 AM</span>
+            </div>
+            <div class="message-self max-w-xs p-3 mb-3 shadow-sm">
+                <p>Pretty good! Just working on some code.</p>
+                <span class="text-xs text-gray-500 block text-right">10:31 AM</span>
+            </div>
+            <div class="message-other max-w-xs p-3 mb-3 shadow-sm">
+                <p>That's awesome! What are you building?</p>
+                <span class="text-xs text-gray-500 block text-right">10:32 AM</span>
+            </div>
+            <div class="message-self max-w-xs p-3 mb-3 shadow-sm">
+                <p>A chat UI like WhatsApp using HTML, CSS, and JS!</p>
+                <span class="text-xs text-gray-500 block text-right">10:33 AM</span>
+            </div>
+            <!-- Additional Messages -->
+            <div class="message-other max-w-xs p-3 mb-3 shadow-sm">
+                <p>Wow, that sounds interesting! What backend technology are you using?</p>
+                <span class="text-xs text-gray-500 block text-right">10:34 AM</span>
+            </div>
+            <div class="message-self max-w-xs p-3 mb-3 shadow-sm">
+                <p>I'm planning to use Node.js with MySQL for the backend.</p>
+                <span class="text-xs text-gray-500 block text-right">10:35 AM</span>
+            </div>
+            <div class="message-other max-w-xs p-3 mb-3 shadow-sm">
+                <p>Great choice! Are you using any specific frameworks?</p>
+                <span class="text-xs text-gray-500 block text-right">10:36 AM</span>
+            </div>
+            <div class="message-self max-w-xs p-3 mb-3 shadow-sm">
+                <p>Yes, Express.js for the server and MySQL2 for database connectivity.</p>
+                <span class="text-xs text-gray-500 block text-right">10:37 AM</span>
+            </div>
+            <div class="message-other max-w-xs p-3 mb-3 shadow-sm">
+                <p>That's a solid stack! How are you handling real-time messaging?</p>
+                <span class="text-xs text-gray-500 block text-right">10:38 AM</span>
+            </div>
+            <div class="message-self max-w-xs p-3 mb-3 shadow-sm">
+                <p>I'll be using Socket.io for real-time bidirectional communication.</p>
+                <span class="text-xs text-gray-500 block text-right">10:39 AM</span>
+            </div>
+        </div>
+<!-- Message Input -->
+        <div class="bg-white rounded-full shadow-lg p-2 flex items-center mt-4">
+            <button class="p-2 text-gray-500">
+                <i data-feather="plus"></i>
+            </button>
+            <input type="text" placeholder="Type a message" 
+                   class="flex-1 mx-2 p-2 focus:outline-none">
+            <button class="p-2 text-gray-500">
+                <i data-feather="mic"></i>
+            </button>
+            <button class="p-2 text-green-500">
+                <i data-feather="send"></i>
+            </button>
+        </div>
+    </main>
+
+    <script>
+feather.replace();
+const socket = io('http://localhost:3000');
+
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.querySelector('input');
+    const sendButton = document.querySelector('.text-green-500');
+    const messagesContainer = document.querySelector('.messages-container');
+
+    function addMessage(msg, isSelf = false) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = isSelf ? 
+            'message-self max-w-xs p-3 mb-3 shadow-sm' : 
+            'message-other max-w-xs p-3 mb-3 shadow-sm';
+        messageDiv.innerHTML = `
+            <p>${msg.content}</p>
+            <span class="text-xs text-gray-500 block text-right">
+                ${new Date(msg.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </span>
+        `;
+        messagesContainer.appendChild(messageDiv);
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    // Load existing messages
+    async function loadChatHistory() {
+        try {
+            const response = await fetch('http://localhost:3000/api/messages');
+            const messages = await response.json();
+            messagesContainer.innerHTML = '';
+            messages.forEach(m => {
+                // Use the actual sender from database
+                addMessage(m, m.sender === 'self');
+            });
+        } catch (error) {
+            console.error('Error loading messages:', error);
+        }
+    }
+
+    // Send message
+    function sendMessage() {
+        const message = input.value.trim();
+        if (message) {
+            const msg = {
+                content: message,
+                sender: 'self'  // This identifies the current user
+            };
+            socket.emit('sendMessage', msg);
+            input.value = '';
+        }
+    }
+
+    sendButton.addEventListener('click', sendMessage);
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+
+    // Receive new message
+    socket.on('receiveMessage', (msg) => {
+        // Use the sender information from the server
+        addMessage(msg, msg.sender === 'self');
+    });
+
+    loadChatHistory();
+});
+
+</script>
+</body>
+</html>
